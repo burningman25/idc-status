@@ -92,8 +92,15 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
     display:flex;flex-direction:column;transition:border-color .15s}
   .card:hover{border-color:var(--bright)}
+  .card{border-top:3px solid var(--acc,var(--line))}
+  .card:hover{border-top-color:var(--acc,var(--bright))}
   .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
   .name{font-size:15px;font-weight:600;word-break:break-word}
+  .name .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc,var(--grey));margin-right:8px;vertical-align:1px}
+  .loc-chip{display:inline-block;margin-top:7px;padding:2px 8px;border-radius:999px;
+    background:rgba(255,153,51,.14);color:#ffb25e;border:1px solid rgba(255,153,51,.35);
+    font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:10px;font-weight:600;
+    letter-spacing:.08em;text-transform:uppercase}
   .url{color:var(--muted);font-size:12px;word-break:break-all;margin-top:3px}
   .url a{color:var(--muted);text-decoration:none}
   .url a:hover{color:var(--green)}
@@ -224,6 +231,22 @@ const FRIENDLY = {
   797740856: "Office Fax"
 };
 function friendlyName(m){ return FRIENDLY[m.id] || m.name; }
+/* Per-service identity accents, keyed by monitor id. Identity only —
+   status pills and sparklines keep their existing meaning colors. */
+const ACCENTS = {
+  795160939: "#818cf8",
+  797740808: "#fb923c",
+  797740825: "#2dd4bf",
+  803863776: "#c084fc",
+  797740857: "#60a5fa",
+  797740856: "#fb7185"
+};
+/* Location tags, keyed by monitor id — only the two Chennai-hosted
+   services carry one. */
+const LOCATIONS = {
+  795160939: "IDCSOFT - CHENNAI",
+  797740808: "IDCSOFT - CHENNAI"
+};
 function sparkline(points){
   if(!points||points.length<2) return "";
   const w=260,h=36,min=Math.min(...points),max=Math.max(...points),span=(max-min)||1;
@@ -262,8 +285,11 @@ function render(d){
     const inc = m.last_incident
       ? `<div class="incident"><b>Last interruption:</b> ${esc(m.last_incident.started)} — ${esc(m.last_incident.duration)}, ${esc(m.last_incident.reason)}</div>`
       : `<div class="incident">No interruptions recorded.</div>`;
-    return `<div class="card">
-      <div class="top"><div><div class="name">${esc(friendlyName(m))}</div><div class="url">${urlHtml}</div></div>
+    const loc = LOCATIONS[m.id]
+      ? `<div><span class="loc-chip">${esc(LOCATIONS[m.id])}</span></div>`
+      : "";
+    return `<div class="card" style="--acc:${ACCENTS[m.id] || "#3c4a42"}">
+      <div class="top"><div><div class="name"><span class="dot"></span>${esc(friendlyName(m))}</div><div class="url">${urlHtml}</div>${loc}</div>
       <span class="pill ${pillCls}">${esc(m.status)}</span></div>
       <div class="stats">
         <div class="stat"><div class="v">${pct(m.uptime_1d)}</div><div class="k">24H</div></div>
