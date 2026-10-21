@@ -159,12 +159,12 @@
         <div class="beacon"><span class="core"></span></div>
         <div>
           <h1 id="bannerText">Checking status…</h1><span class="live-badge" id="liveBadge">Live</span>
-          <div class="banner-sub" id="bannerSub">Loading the latest monitor data.</div>
+          <div class="banner-sub" id="bannerSub">Loading the latest status data.</div>
         </div>
       </div>
       <div class="agg">
         <div class="tile"><div class="k">30-Day Uptime</div><div class="v" id="aggUptime">—</div></div>
-        <div class="tile"><div class="k">Avg Response</div><div class="v" id="aggResp">—</div></div>
+        <div class="tile"><div class="k">Response time</div><div class="v" id="aggResp">—</div></div>
         <div class="tile"><div class="k">Monitored</div><div class="v" id="aggCount">—</div></div>
         <div class="tile"><div class="k">Down Now</div><div class="v" id="aggDown">—</div></div>
       </div>
@@ -174,7 +174,7 @@
   <section>
     <div class="sec-head">
       <div>
-        <h2>Service Monitors</h2>
+        <h2>Services</h2>
         <div class="sec-sub">Continuous telemetry status, uptime windows, and response times</div>
       </div>
       <div class="chip" id="probeChip">Probe window: 60s</div>
@@ -185,8 +185,8 @@
   <section>
     <div class="sec-head">
       <div>
-        <h2>Recent incidents</h2>
-        <div class="sec-sub">Latest recorded outages across all monitors</div>
+        <h2>Recent interruptions</h2>
+        <div class="sec-sub">Latest recorded outages across all services</div>
       </div>
     </div>
     <div class="panel" id="incidents"></div>
@@ -195,8 +195,8 @@
   <section>
     <div class="sec-head">
       <div>
-        <h2>SSL certificates</h2>
-        <div class="sec-sub">Certificate expiry tracking for monitored hosts</div>
+        <h2>Security certificates</h2>
+        <div class="sec-sub">Certificate expiry tracking for all services</div>
       </div>
     </div>
     <div class="panel" id="ssl"></div>
@@ -204,13 +204,26 @@
 </main>
 
 <footer>
-  <div class="in">Status data from UptimeRobot, checked every 60 seconds per monitor. This page reloads its data every 60 seconds. Design: “Obsidian Telemetry” by Google Stitch.</div>
+  <div class="in">Status data from UptimeRobot, checked every 60 seconds for each service. This page reloads its data every 60 seconds. Design: “Obsidian Telemetry” by Google Stitch.</div>
 </footer>
 
 <script>
 const $ = id => document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function pct(v){const n=parseFloat(v);return isNaN(n)?esc(v):n.toFixed(2)+"%"}
+/* Public display names: friendly labels keyed by UptimeRobot monitor id.
+   Display layer only — snapshot data keeps the original names. Incidents
+   carry only the original name string, so their labels are resolved at
+   render time through the snapshot's own monitor list (name -> id -> label). */
+const FRIENDLY = {
+  795160939: "IDC Soft — Office Software",
+  797740808: "Office Server",
+  797740825: "eMed — Patient Records",
+  803863776: "Credentialing Updates",
+  797740857: "ID Consultants Website",
+  797740856: "Office Fax"
+};
+function friendlyName(m){ return FRIENDLY[m.id] || m.name; }
 function sparkline(points){
   if(!points||points.length<2) return "";
   const w=260,h=36,min=Math.min(...points),max=Math.max(...points),span=(max-min)||1;
@@ -226,19 +239,19 @@ function render(d){
     b.className="banner ok";
     $("bannerText").textContent = "All Systems Operational";
     $("liveBadge").textContent = "Live";
-    $("bannerSub").textContent = `All ${d.monitor_count} monitors are responding normally.`;
+    $("bannerSub").textContent = `All ${d.monitor_count} services are responding normally.`;
   } else {
     b.className="banner bad";
     $("bannerText").textContent = "Service Disruption Detected";
     $("liveBadge").textContent = "Outage";
-    $("bannerSub").textContent = bad.length ? ("Down now: " + bad.map(m=>m.name).join(", ")) : "Issues detected on one or more monitors.";
+    $("bannerSub").textContent = bad.length ? ("Down now: " + bad.map(m=>friendlyName(m)).join(", ")) : "Issues detected on one or more services.";
   }
   const u30 = mons.map(m=>parseFloat(m.uptime_30d)).filter(n=>!isNaN(n));
   $("aggUptime").textContent = u30.length ? (u30.reduce((a,c)=>a+c,0)/u30.length).toFixed(2)+"%" : "—";
   const rs = mons.map(m=>parseFloat(m.avg_response_ms)).filter(n=>!isNaN(n));
   $("aggResp").textContent = rs.length ? Math.round(rs.reduce((a,c)=>a+c,0)/rs.length)+" ms" : "—";
   $("aggCount").textContent = (d.monitor_count!=null? d.monitor_count : mons.length) + " services";
-  $("aggDown").textContent = bad.length + (bad.length===1 ? " monitor" : " monitors");
+  $("aggDown").textContent = bad.length + (bad.length===1 ? " service" : " services");
   const iv = mons.map(m=>parseInt(m.interval_sec)).filter(n=>!isNaN(n));
   if(iv.length) $("probeChip").textContent = "Probe window: " + Math.min(...iv) + "s";
   $("cards").innerHTML = mons.map(m=>{
@@ -247,10 +260,10 @@ function render(d){
       ? esc(m.url)
       : `<a href="${esc(m.url)}" rel="noopener" target="_blank">${esc(m.url)}</a>`;
     const inc = m.last_incident
-      ? `<div class="incident"><b>Last incident:</b> ${esc(m.last_incident.started)} — ${esc(m.last_incident.duration)}, ${esc(m.last_incident.reason)}</div>`
-      : `<div class="incident">No incidents recorded.</div>`;
+      ? `<div class="incident"><b>Last interruption:</b> ${esc(m.last_incident.started)} — ${esc(m.last_incident.duration)}, ${esc(m.last_incident.reason)}</div>`
+      : `<div class="incident">No interruptions recorded.</div>`;
     return `<div class="card">
-      <div class="top"><div><div class="name">${esc(m.name)}</div><div class="url">${urlHtml}</div></div>
+      <div class="top"><div><div class="name">${esc(friendlyName(m))}</div><div class="url">${urlHtml}</div></div>
       <span class="pill ${pillCls}">${esc(m.status)}</span></div>
       <div class="stats">
         <div class="stat"><div class="v">${pct(m.uptime_1d)}</div><div class="k">24H</div></div>
@@ -258,14 +271,16 @@ function render(d){
         <div class="stat"><div class="v">${pct(m.uptime_30d)}</div><div class="k">30D</div></div>
         <div class="stat"><div class="v">${pct(m.uptime_all)}</div><div class="k">All time</div></div>
       </div>
-      <div class="resp"><span>Average response</span><b>${esc(m.avg_response_ms)} ms</b></div>
+      <div class="resp"><span>Response time</span><b>${esc(m.avg_response_ms)} ms</b></div>
       ${sparkline(m.response_points)}
       ${inc}
     </div>`;
   }).join("");
+  const labelByName = {};
+  mons.forEach(m=>{ labelByName[m.name] = friendlyName(m); });
   $("incidents").innerHTML = (d.incidents||[]).map(i=>
-    `<div class="irow"><span class="m">${esc(i.monitor)}</span><span class="w">${esc(i.started)}</span><span class="d">${esc(i.duration)}</span><span class="r">${esc(i.reason)}</span></div>`
-  ).join("") || `<div class="irow">No incidents recorded.</div>`;
+    `<div class="irow"><span class="m">${esc(labelByName[i.monitor] || i.monitor)}</span><span class="w">${esc(i.started)}</span><span class="d">${esc(i.duration)}</span><span class="r">${esc(i.reason)}</span></div>`
+  ).join("") || `<div class="irow">No interruptions recorded.</div>`;
   $("ssl").innerHTML = (d.ssl||[]).map(s=>{
     let badge;
     if(s.expires==null||s.days_left==null) badge = `<span class="badge grey">${esc(s.source)}</span>`;
