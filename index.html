@@ -5,90 +5,208 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>ID Consultants — System Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Design: Google Stitch project "IDC System Status" (projects/12791483160752193784),
+     screen 0ae5c783194a4d9d9f72a8b5d47b4044, design system "Obsidian Telemetry"
+     (assets/279213e03e4d4e72928b9805d18d28f8). Implemented as a self-contained
+     page (no runtime CSS framework) following the Stitch markup/layout. */
   :root{
-    --bg:#0b1220; --panel:#121c30; --panel2:#0e1728; --line:#22314f;
-    --text:#e8eefb; --muted:#93a4c3; --green:#2fbf71; --green-bg:#0f2e21;
-    --red:#e5534b; --red-bg:#3a1714; --amber:#f0a13c; --amber-bg:#3a2a10;
-    --grey:#8b98ad;
+    --bg:#0f131c; --bg-lowest:#0a0e16; --panel:#1c2028; --panel-low:#181c24;
+    --panel-high:#262a33; --bright:#353942; --line:#3c4a42;
+    --text:#dfe2ee; --muted:#bbcabf;
+    --green:#4edea3; --green-strong:#10b981; --green-bg:rgba(16,185,129,.12);
+    --red:#ffb4ab; --red-strong:#e5534b; --red-bg:rgba(147,0,10,.35);
+    --amber:#ffb95f; --amber-bg:rgba(226,145,0,.14);
+    --blue:#adc6ff; --grey:#86948a;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
-  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:14px}
-  h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.2px}
-  .updated{color:var(--muted);font-size:13px}
-  .banner{border-radius:10px;padding:14px 18px;font-size:17px;font-weight:700;
-    display:flex;align-items:center;gap:10px;margin-bottom:18px;border:1px solid var(--line)}
-  .banner.ok{background:var(--green-bg);color:#7be2ab;border-color:#1d5c3c}
-  .banner.bad{background:var(--red-bg);color:#ff9d97;border-color:#7a2d27}
-  .dot{width:11px;height:11px;border-radius:50%;background:currentColor;flex:none}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  /* --- top bar (Stitch header) --- */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--panel-low);border-bottom:1px solid var(--line)}
+  .topbar-in{max-width:1280px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-tile{width:30px;height:30px;border-radius:8px;background:var(--panel-high);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--green);flex:none}
+  .brand-name{font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .updated-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;padding:5px 10px;font-size:12px;color:var(--muted)}
+  .pulse-dot{position:relative;width:8px;height:8px;flex:none}
+  .pulse-dot::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--green);
+    animation:ring 2s cubic-bezier(0,0,.2,1) infinite}
+  .pulse-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--green)}
+  @keyframes ring{0%{transform:scale(1);opacity:.75}80%,100%{transform:scale(2.6);opacity:0}}
+  .refresh-btn{display:flex;align-items:center;gap:6px;background:transparent;color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:inherit}
+  .refresh-btn:hover{color:var(--green);border-color:var(--green)}
+  .refresh-btn .mono{font-size:12px;color:var(--muted)}
+  /* --- layout --- */
+  .wrap{max-width:1280px;width:100%;margin:0 auto;padding:28px 24px 48px;flex:1}
+  .err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-strong);border-radius:8px;
+    padding:10px 14px;font-size:13px;display:none;margin-bottom:16px}
+  /* --- hero banner (Stitch system health banner) --- */
+  .banner{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:24px;margin-bottom:28px}
+  .banner::before{content:"";position:absolute;right:-64px;top:-64px;width:256px;height:256px;border-radius:50%;
+    background:rgba(16,185,129,.10);filter:blur(48px);pointer-events:none}
+  .banner.bad::before{background:rgba(229,83,75,.12)}
+  .banner-in{position:relative;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+  .banner-left{display:flex;gap:16px;align-items:center;min-width:280px}
+  .beacon{position:relative;width:52px;height:52px;flex:none;border-radius:12px;background:var(--panel-high);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+  .beacon::before{content:"";position:absolute;width:40px;height:40px;border-radius:50%;
+    background:rgba(78,222,163,.20);animation:ring 2s cubic-bezier(0,0,.2,1) infinite}
+  .beacon .core{width:16px;height:16px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 12px rgba(78,222,163,.6);position:relative}
+  .banner.bad .beacon::before{background:rgba(255,180,171,.20)}
+  .banner.bad .beacon .core{background:var(--red);box-shadow:0 0 12px rgba(255,180,171,.6)}
+  .banner h1{font-size:26px;margin:0;font-weight:700;letter-spacing:-.01em;display:inline}
+  .live-badge{display:inline-block;vertical-align:middle;margin-left:10px;padding:2px 8px;border-radius:4px;
+    font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--green-bg);border:1px solid rgba(78,222,163,.3);color:var(--green)}
+  .banner.bad .live-badge{background:var(--red-bg);border-color:rgba(255,180,171,.3);color:var(--red)}
+  .banner-sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .agg{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:12px}
+  @media(min-width:900px){.agg{grid-template-columns:repeat(4,minmax(130px,1fr));border-left:1px solid var(--line);padding-left:24px}}
+  .agg .tile{background:var(--panel-low);border:1px solid var(--line);border-radius:8px;padding:12px}
+  .agg .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .agg .v{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:16px;font-weight:600;margin-top:4px}
+  .agg .s{font-size:12px;color:var(--green);margin-left:6px}
+  /* --- sections --- */
+  section{margin-top:30px}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  h2{font-size:17px;margin:0;font-weight:600}
+  .sec-sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .chip{background:var(--panel-low);border:1px solid var(--line);border-radius:8px;padding:5px 10px;
+    font-size:12px;color:var(--muted);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  /* --- monitor cards --- */
+  .grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
+    display:flex;flex-direction:column;transition:border-color .15s}
+  .card:hover{border-color:var(--bright)}
   .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-  .name{font-size:16px;font-weight:700;word-break:break-word}
-  .url{color:var(--muted);font-size:12px;word-break:break-all;margin-top:2px}
-  .url a{color:var(--muted)}
-  .pill{flex:none;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
-  .pill.up{background:var(--green-bg);color:#7be2ab}
-  .pill.down{background:var(--red-bg);color:#ff9d97}
-  .pill.other{background:#232f47;color:var(--grey)}
+  .name{font-size:15px;font-weight:600;word-break:break-word}
+  .url{color:var(--muted);font-size:12px;word-break:break-all;margin-top:3px}
+  .url a{color:var(--muted);text-decoration:none}
+  .url a:hover{color:var(--green)}
+  .pill{flex:none;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.02em}
+  .pill.up{background:var(--green-bg);color:var(--green);border:1px solid rgba(78,222,163,.35)}
+  .pill.down{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,180,171,.35)}
+  .pill.other{background:var(--panel-high);color:var(--grey);border:1px solid var(--line)}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 10px}
-  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 6px;text-align:center}
-  .stat .v{font-size:14px;font-weight:700}
-  .stat .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
-  .resp{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-top:6px}
-  .resp b{color:var(--text);font-size:13px}
+  .stat{background:var(--panel-low);border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center}
+  .stat .v{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:13px;font-weight:600}
+  .stat .k{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:600}
+  .resp{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-top:4px}
+  .resp b{color:var(--text);font-size:13px;font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-weight:600}
   .spark{margin-top:8px;width:100%;height:36px;display:block}
-  .incident{margin-top:10px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.5}
-  .incident b{color:var(--text)}
-  section{margin-top:26px}
-  h2{font-size:16px;margin:0 0 10px}
-  .incidents{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .irow{display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
+  .incident{margin-top:auto;padding-top:10px;font-size:12px;color:var(--muted);
+    border-top:1px solid var(--line);margin-top:12px;line-height:1.5}
+  .incident b{color:var(--text);font-weight:600}
+  /* --- list panels (incidents + SSL) --- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .irow{display:flex;flex-wrap:wrap;gap:4px 12px;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .irow:first-child{border-top:none}
-  .irow .m{font-weight:700;min-width:170px}
+  .irow .m{font-weight:600;min-width:170px}
   .irow .w{color:var(--muted)}
-  .irow .d{margin-left:auto;font-weight:600}
+  .irow .d{margin-left:auto;font-weight:600;font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:12px}
   .irow .r{width:100%;color:var(--muted);font-size:12px}
-  .sslrow{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
+  .sslrow{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .sslrow:first-child{border-top:none}
-  .sslrow .h{font-weight:700;min-width:200px}
-  .badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
-  .badge.ok{background:var(--green-bg);color:#7be2ab}
-  .badge.amber{background:var(--amber-bg);color:#ffc978}
-  .badge.red{background:var(--red-bg);color:#ff9d97}
-  .badge.grey{background:#232f47;color:var(--grey)}
-  footer{margin-top:28px;color:var(--muted);font-size:12px;line-height:1.6}
-  .err{background:var(--red-bg);color:#ff9d97;border-radius:8px;padding:10px 14px;font-size:13px;display:none;margin-bottom:14px}
+  .sslrow .h{font-weight:600;min-width:200px}
+  .badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+  .badge.ok{background:var(--green-bg);color:var(--green)}
+  .badge.amber{background:var(--amber-bg);color:var(--amber)}
+  .badge.red{background:var(--red-bg);color:var(--red)}
+  .badge.grey{background:var(--panel-high);color:var(--grey)}
+  footer{color:var(--muted);font-size:12px;line-height:1.6;padding:18px 24px;border-top:1px solid var(--line);background:var(--bg-lowest)}
+  footer .in{max-width:1280px;margin:0 auto}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>ID Consultants — System Status</h1>
-    <div class="updated" id="updated">Loading…</div>
-  </header>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <div class="brand-tile" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+      </div>
+      <span class="brand-name">ID Consultants — System Status</span>
+    </div>
+    <div class="top-actions">
+      <div class="updated-chip"><span class="pulse-dot"></span><span id="updated">Loading…</span></div>
+      <button class="refresh-btn" id="refreshBtn" type="button" aria-label="Refresh now">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        <span>Refresh</span><span class="mono" id="countdown">60s</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
   <div class="err" id="err"></div>
-  <div class="banner ok" id="banner"><span class="dot"></span><span id="bannerText">Checking status…</span></div>
-  <div class="grid" id="cards"></div>
+
+  <div class="banner ok" id="banner">
+    <div class="banner-in">
+      <div class="banner-left">
+        <div class="beacon"><span class="core"></span></div>
+        <div>
+          <h1 id="bannerText">Checking status…</h1><span class="live-badge" id="liveBadge">Live</span>
+          <div class="banner-sub" id="bannerSub">Loading the latest monitor data.</div>
+        </div>
+      </div>
+      <div class="agg">
+        <div class="tile"><div class="k">30-Day Uptime</div><div class="v" id="aggUptime">—</div></div>
+        <div class="tile"><div class="k">Avg Response</div><div class="v" id="aggResp">—</div></div>
+        <div class="tile"><div class="k">Monitored</div><div class="v" id="aggCount">—</div></div>
+        <div class="tile"><div class="k">Down Now</div><div class="v" id="aggDown">—</div></div>
+      </div>
+    </div>
+  </div>
 
   <section>
-    <h2>Recent incidents</h2>
-    <div class="incidents" id="incidents"></div>
+    <div class="sec-head">
+      <div>
+        <h2>Service Monitors</h2>
+        <div class="sec-sub">Continuous telemetry status, uptime windows, and response times</div>
+      </div>
+      <div class="chip" id="probeChip">Probe window: 60s</div>
+    </div>
+    <div class="grid" id="cards"></div>
   </section>
 
   <section>
-    <h2>SSL certificates</h2>
-    <div class="incidents" id="ssl"></div>
+    <div class="sec-head">
+      <div>
+        <h2>Recent incidents</h2>
+        <div class="sec-sub">Latest recorded outages across all monitors</div>
+      </div>
+    </div>
+    <div class="panel" id="incidents"></div>
   </section>
 
-  <footer>
-    Status data from UptimeRobot, checked every 60 seconds per monitor. This page reloads its data every 60 seconds.
-  </footer>
-</div>
+  <section>
+    <div class="sec-head">
+      <div>
+        <h2>SSL certificates</h2>
+        <div class="sec-sub">Certificate expiry tracking for monitored hosts</div>
+      </div>
+    </div>
+    <div class="panel" id="ssl"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="in">Status data from UptimeRobot, checked every 60 seconds per monitor. This page reloads its data every 60 seconds. Design: “Obsidian Telemetry” by Google Stitch.</div>
+</footer>
+
 <script>
 const $ = id => document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -97,15 +215,33 @@ function sparkline(points){
   if(!points||points.length<2) return "";
   const w=260,h=36,min=Math.min(...points),max=Math.max(...points),span=(max-min)||1;
   const pts=points.map((p,i)=>`${(i/(points.length-1)*w).toFixed(1)},${(h-3-((p-min)/span)*(h-6)).toFixed(1)}`).join(" ");
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#4da3ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#adc6ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function render(d){
   $("updated").textContent = "Updated " + d.generated_at;
-  const bad = (d.monitors||[]).filter(m=>!m.is_up);
+  const mons = d.monitors||[];
+  const bad = mons.filter(m=>!m.is_up);
   const b = $("banner");
-  if(d.all_up){ b.className="banner ok"; $("bannerText").textContent = `All systems up — ${d.monitor_count} monitors`; }
-  else { b.className="banner bad"; $("bannerText").textContent = bad.length ? ("Issues detected — down: " + bad.map(m=>m.name).join(", ")) : "Issues detected"; }
-  $("cards").innerHTML = (d.monitors||[]).map(m=>{
+  if(d.all_up){
+    b.className="banner ok";
+    $("bannerText").textContent = "All Systems Operational";
+    $("liveBadge").textContent = "Live";
+    $("bannerSub").textContent = `All ${d.monitor_count} monitors are responding normally.`;
+  } else {
+    b.className="banner bad";
+    $("bannerText").textContent = "Service Disruption Detected";
+    $("liveBadge").textContent = "Outage";
+    $("bannerSub").textContent = bad.length ? ("Down now: " + bad.map(m=>m.name).join(", ")) : "Issues detected on one or more monitors.";
+  }
+  const u30 = mons.map(m=>parseFloat(m.uptime_30d)).filter(n=>!isNaN(n));
+  $("aggUptime").textContent = u30.length ? (u30.reduce((a,c)=>a+c,0)/u30.length).toFixed(2)+"%" : "—";
+  const rs = mons.map(m=>parseFloat(m.avg_response_ms)).filter(n=>!isNaN(n));
+  $("aggResp").textContent = rs.length ? Math.round(rs.reduce((a,c)=>a+c,0)/rs.length)+" ms" : "—";
+  $("aggCount").textContent = (d.monitor_count!=null? d.monitor_count : mons.length) + " services";
+  $("aggDown").textContent = bad.length + (bad.length===1 ? " monitor" : " monitors");
+  const iv = mons.map(m=>parseInt(m.interval_sec)).filter(n=>!isNaN(n));
+  if(iv.length) $("probeChip").textContent = "Probe window: " + Math.min(...iv) + "s";
+  $("cards").innerHTML = mons.map(m=>{
     const pillCls = m.is_up ? "up" : (m.status==="Down" ? "down" : "other");
     const urlHtml = m.type==="Keyword"
       ? esc(m.url)
@@ -117,9 +253,9 @@ function render(d){
       <div class="top"><div><div class="name">${esc(m.name)}</div><div class="url">${urlHtml}</div></div>
       <span class="pill ${pillCls}">${esc(m.status)}</span></div>
       <div class="stats">
-        <div class="stat"><div class="v">${pct(m.uptime_1d)}</div><div class="k">24h</div></div>
-        <div class="stat"><div class="v">${pct(m.uptime_7d)}</div><div class="k">7d</div></div>
-        <div class="stat"><div class="v">${pct(m.uptime_30d)}</div><div class="k">30d</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_1d)}</div><div class="k">24H</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_7d)}</div><div class="k">7D</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_30d)}</div><div class="k">30D</div></div>
         <div class="stat"><div class="v">${pct(m.uptime_all)}</div><div class="k">All time</div></div>
       </div>
       <div class="resp"><span>Average response</span><b>${esc(m.avg_response_ms)} ms</b></div>
@@ -140,6 +276,7 @@ function render(d){
     return `<div class="sslrow"><span class="h">${esc(s.host)}</span>${badge}</div>`;
   }).join("");
 }
+let remain = 60;
 async function load(){
   try{
     const r = await fetch("https://idc-status.binoyjacob4.workers.dev/data.json", {cache:"no-store"});
@@ -149,7 +286,10 @@ async function load(){
   }catch(e){
     const el=$("err"); el.style.display="block"; el.textContent="Could not load the latest status data — retrying automatically.";
   }
+  remain = 60;
 }
+$("refreshBtn").addEventListener("click", load);
+setInterval(()=>{ if(remain>0) remain--; $("countdown").textContent = remain + "s"; }, 1000);
 load();
 setInterval(load, 60000);
 </script>
