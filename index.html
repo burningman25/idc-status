@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ID Consultants — System Status</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121c30; --panel2:#0e1728; --line:#22314f;
+    --text:#e8eefb; --muted:#93a4c3; --green:#2fbf71; --green-bg:#0f2e21;
+    --red:#e5534b; --red-bg:#3a1714; --amber:#f0a13c; --amber-bg:#3a2a10;
+    --grey:#8b98ad;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:14px}
+  h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.2px}
+  .updated{color:var(--muted);font-size:13px}
+  .banner{border-radius:10px;padding:14px 18px;font-size:17px;font-weight:700;
+    display:flex;align-items:center;gap:10px;margin-bottom:18px;border:1px solid var(--line)}
+  .banner.ok{background:var(--green-bg);color:#7be2ab;border-color:#1d5c3c}
+  .banner.bad{background:var(--red-bg);color:#ff9d97;border-color:#7a2d27}
+  .dot{width:11px;height:11px;border-radius:50%;background:currentColor;flex:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .name{font-size:16px;font-weight:700;word-break:break-word}
+  .url{color:var(--muted);font-size:12px;word-break:break-all;margin-top:2px}
+  .url a{color:var(--muted)}
+  .pill{flex:none;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .pill.up{background:var(--green-bg);color:#7be2ab}
+  .pill.down{background:var(--red-bg);color:#ff9d97}
+  .pill.other{background:#232f47;color:var(--grey)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 6px;text-align:center}
+  .stat .v{font-size:14px;font-weight:700}
+  .stat .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+  .resp{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-top:6px}
+  .resp b{color:var(--text);font-size:13px}
+  .spark{margin-top:8px;width:100%;height:36px;display:block}
+  .incident{margin-top:10px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.5}
+  .incident b{color:var(--text)}
+  section{margin-top:26px}
+  h2{font-size:16px;margin:0 0 10px}
+  .incidents{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .irow{display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
+  .irow:first-child{border-top:none}
+  .irow .m{font-weight:700;min-width:170px}
+  .irow .w{color:var(--muted)}
+  .irow .d{margin-left:auto;font-weight:600}
+  .irow .r{width:100%;color:var(--muted);font-size:12px}
+  .sslrow{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
+  .sslrow:first-child{border-top:none}
+  .sslrow .h{font-weight:700;min-width:200px}
+  .badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .badge.ok{background:var(--green-bg);color:#7be2ab}
+  .badge.amber{background:var(--amber-bg);color:#ffc978}
+  .badge.red{background:var(--red-bg);color:#ff9d97}
+  .badge.grey{background:#232f47;color:var(--grey)}
+  footer{margin-top:28px;color:var(--muted);font-size:12px;line-height:1.6}
+  .err{background:var(--red-bg);color:#ff9d97;border-radius:8px;padding:10px 14px;font-size:13px;display:none;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ID Consultants — System Status</h1>
+    <div class="updated" id="updated">Loading…</div>
+  </header>
+  <div class="err" id="err"></div>
+  <div class="banner ok" id="banner"><span class="dot"></span><span id="bannerText">Checking status…</span></div>
+  <div class="grid" id="cards"></div>
+
+  <section>
+    <h2>Recent incidents</h2>
+    <div class="incidents" id="incidents"></div>
+  </section>
+
+  <section>
+    <h2>SSL certificates</h2>
+    <div class="incidents" id="ssl"></div>
+  </section>
+
+  <footer>
+    Status data from UptimeRobot, checked every 60 seconds per monitor. This page reloads its data every 60 seconds.
+  </footer>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function pct(v){const n=parseFloat(v);return isNaN(n)?esc(v):n.toFixed(2)+"%"}
+function sparkline(points){
+  if(!points||points.length<2) return "";
+  const w=260,h=36,min=Math.min(...points),max=Math.max(...points),span=(max-min)||1;
+  const pts=points.map((p,i)=>`${(i/(points.length-1)*w).toFixed(1)},${(h-3-((p-min)/span)*(h-6)).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#4da3ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+function render(d){
+  $("updated").textContent = "Updated " + d.generated_at;
+  const bad = (d.monitors||[]).filter(m=>!m.is_up);
+  const b = $("banner");
+  if(d.all_up){ b.className="banner ok"; $("bannerText").textContent = `All systems up — ${d.monitor_count} monitors`; }
+  else { b.className="banner bad"; $("bannerText").textContent = bad.length ? ("Issues detected — down: " + bad.map(m=>m.name).join(", ")) : "Issues detected"; }
+  $("cards").innerHTML = (d.monitors||[]).map(m=>{
+    const pillCls = m.is_up ? "up" : (m.status==="Down" ? "down" : "other");
+    const urlHtml = m.type==="Keyword"
+      ? esc(m.url)
+      : `<a href="${esc(m.url)}" rel="noopener" target="_blank">${esc(m.url)}</a>`;
+    const inc = m.last_incident
+      ? `<div class="incident"><b>Last incident:</b> ${esc(m.last_incident.started)} — ${esc(m.last_incident.duration)}, ${esc(m.last_incident.reason)}</div>`
+      : `<div class="incident">No incidents recorded.</div>`;
+    return `<div class="card">
+      <div class="top"><div><div class="name">${esc(m.name)}</div><div class="url">${urlHtml}</div></div>
+      <span class="pill ${pillCls}">${esc(m.status)}</span></div>
+      <div class="stats">
+        <div class="stat"><div class="v">${pct(m.uptime_1d)}</div><div class="k">24h</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_7d)}</div><div class="k">7d</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_30d)}</div><div class="k">30d</div></div>
+        <div class="stat"><div class="v">${pct(m.uptime_all)}</div><div class="k">All time</div></div>
+      </div>
+      <div class="resp"><span>Average response</span><b>${esc(m.avg_response_ms)} ms</b></div>
+      ${sparkline(m.response_points)}
+      ${inc}
+    </div>`;
+  }).join("");
+  $("incidents").innerHTML = (d.incidents||[]).map(i=>
+    `<div class="irow"><span class="m">${esc(i.monitor)}</span><span class="w">${esc(i.started)}</span><span class="d">${esc(i.duration)}</span><span class="r">${esc(i.reason)}</span></div>`
+  ).join("") || `<div class="irow">No incidents recorded.</div>`;
+  $("ssl").innerHTML = (d.ssl||[]).map(s=>{
+    let badge;
+    if(s.expires==null||s.days_left==null) badge = `<span class="badge grey">${esc(s.source)}</span>`;
+    else {
+      const cls = s.days_left<=14 ? "red" : (s.days_left<=45 ? "amber" : "ok");
+      badge = `<span class="badge ${cls}">Expires ${esc(s.expires)} — ${esc(s.days_left)} days left</span>`;
+    }
+    return `<div class="sslrow"><span class="h">${esc(s.host)}</span>${badge}</div>`;
+  }).join("");
+}
+async function load(){
+  try{
+    const r = await fetch("https://idc-status.binoyjacob4.workers.dev/data.json", {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    render(await r.json());
+    $("err").style.display="none";
+  }catch(e){
+    const el=$("err"); el.style.display="block"; el.textContent="Could not load the latest status data — retrying automatically.";
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
